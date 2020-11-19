@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <meta name="viewport" content="user-scalable=no">
+
 <head>
     <title>开幕式</title>
 </head>
@@ -22,31 +23,35 @@ div#box>section {
     left: 0;
 }
 
-div#box>section:first-child {
+div#box>section:nth-child(1) {
     background: #6cc9bf url('./img/daytime.jpg') no-repeat scroll center / auto;
     z-index: 10;
+    opacity: 1;
 }
 
-div#box>section:last-child {
+div#box>section:nth-child(2) {
     background: #135f7f url('./img/night.jpg') no-repeat scroll center / auto;
     z-index: 1;
+    opacity: 1;
 }
 
 div#switch {
     width: 300px;
     height: 48px;
-    background: #f33;
+    background: rgba(65, 144, 135, 0.8);
     position: fixed;
     top: calc(64% - 24px);
     left: calc(50% - 150px);
     z-index: 20;
     overflow: hidden;
 }
+div#switch.night {
+    background: rgba(12, 72, 97, 0.8);
+}
 
 div#btnBox {
     width: 600px;
     display: flex;
-    margin-left: -300px;
     position: relative;
 }
 
@@ -57,23 +62,43 @@ div#btnBox>span {
 }
 
 #slider {
+    width: 36px;
+    display: flex;
+    justify-content: center;
     position: absolute;
     left: 300px;
     cursor: pointer;
+    background: #333;
+}
+
+#text1 {
+    position: absolute;
+    left: 48px;
+    cursor: pointer;
+}
+
+#text2 {
+    position: absolute;
+    left: 380px;
+    cursor: pointer;
+}
+.transition-opacity {
+    transition: opacity 1.2s;
+    -webkit-transition: opacity 1.2s; /* Safari */
 }
 </style>
 
 <body>
     <div id="box">
-        <section id="kkk">
+        <section id="bg1" class="transition-opacity">
             <!-- 开幕背景 -->
         </section>
-        <section>
+        <section id="bg2" class="transition-opacity">
             <!-- 结束背景 -->
         </section>
         <!-- 按钮容器 -->
         <div id="switch">
-            <div id="btnBox">
+            <div id="btnBox" style="margin-left: -300px;">
                 <span id="text1">完成了</span>
                 <span id="slider">→</span>
                 <span id="text2">请右滑</span>
@@ -82,17 +107,96 @@ div#btnBox>span {
     </div>
 </body>
 <script type="text/javascript">
-  slider = document.getElementById('slider')
-  console.log(!!self.touch)
-  document.getElementById('kkk').innerHTML = !!self.touch
-  if(!!self.touch) self.slider.addEventListener('touchstart', startSlide, false);
-  function startSlide(event) {
-    console.log(event)
-　　var touch = event.targetTouches[0]; //touches数组对象获得屏幕上所有的touch，取第一个touch
-　　startPos = {x:touch.pageX,y:touch.pageY,time:+new Date}; //取第一个touch的坐标值
-　　isScrolling = 0; //这个参数判断是垂直滚动还是水平滚动
-　　this.slider.addEventListener('touchmove',this,false);
-　　this.slider.addEventListener('touchend',this,false);
-  }
+var offerX = -300; // 左侧偏移
+var btnWidth = 36; // 按钮宽度
+var slider = {
+    //判断设备是否支持touch事件
+    touch: ('ontouchstart' in window) || window.DocumentTouch && document instanceof DocumentTouch,
+    slider: document.getElementById('slider'),
+    btnBox: document.getElementById('btnBox'),
+    switch: document.getElementById('switch'),
+    bg1: document.getElementById('bg1'),
+    bg2: document.getElementById('bg2'),
+
+    //事件
+    events: {
+        left: parseInt(btnBox.style.marginLeft), //显示元素的索引
+        slider: this.slider, //this为slider对象
+        // icons: document.getElementById('icons'),
+        // icon: this.icons.getElementsByTagName('span'),
+        handleEvent: function(event) {
+            var self = this; //this指events对象
+            if (event.type == 'touchstart') {
+                self.start(event);
+            } else if (event.type == 'touchmove') {
+                self.move(event);
+            } else if (event.type == 'touchend') {
+                self.end(event);
+            }
+        },
+        //滑动开始
+        start: function(event) {
+            this.slider = slider.slider;
+            var touch = event.targetTouches[0]; //touches数组对象获得屏幕上所有的touch，取第一个touch
+            startPos = { x: touch.pageX, y: touch.pageY, time: +new Date }; //取第一个touch的坐标值
+            isScrolling = 0; //这个参数判断是垂直滚动还是水平滚动
+            this.slider.addEventListener('touchmove', this, false);
+            this.slider.addEventListener('touchend', this, false);
+        },
+        //移动
+        move: function(event) {
+            //当屏幕有多个touch或者页面被缩放过，就不执行move操作
+            if (event.targetTouches.length > 1 || event.scale && event.scale !== 1) return;
+            var touch = event.targetTouches[0];
+            endPos = { x: touch.pageX - startPos.x, y: touch.pageY - startPos.y };
+            isScrolling = Math.abs(endPos.x) < Math.abs(endPos.y) ? 1 : 0; //isScrolling为1时，表示纵向滑动，0为横向滑动
+            if (isScrolling === 0) {
+                // event.preventDefault(); //阻止触摸事件的默认行为，即阻止滚屏
+                const currLeft = this.left;
+                var marginLeft = 0;
+                if (currLeft + endPos.x > -btnWidth) {
+                    marginLeft = -btnWidth;
+                } else if (currLeft + endPos.x < offerX) {
+                    marginLeft = offerX;
+                } else {
+                    marginLeft = this.left + endPos.x;
+                }
+                btnBox.style.marginLeft = marginLeft + 'px';
+            }
+        },
+        //滑动释放
+        end: function(event) {
+            // 复位 & 动画
+            // 完成
+            if (parseInt(btnBox.style.marginLeft) > -60) {
+                btnBox.style.marginLeft = -btnWidth + 'px'
+                bg1.style.opacity = 0
+                bg2.style.opacity = 1
+                self.slider.switch.classList.add('night')
+            }
+            // 恢复初始位置
+            else {
+                btnBox.style.marginLeft = offerX + 'px'
+                bg1.style.opacity = 1
+                bg2.style.opacity = 0
+                self.slider.switch.classList.remove('night')
+            }
+            // console.log(self.slider.switch)
+            this.left = parseInt(btnBox.style.marginLeft);
+            //解绑事件
+            this.slider.removeEventListener('touchmove', this, false);
+            this.slider.removeEventListener('touchend', this, false);
+        }
+    },
+
+    //初始化
+    init: function() {
+        var self = this; //this指slider对象
+        if (!!self.touch) self.slider.addEventListener('touchstart', self.events, false); //addEventListener第二个参数可以传一个对象，会调用该对象的handleEvent属性
+    }
+};
+
+slider.init();
 </script>
+
 </html>
